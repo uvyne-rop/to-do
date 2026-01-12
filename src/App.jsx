@@ -427,9 +427,14 @@ function TaskItem({ task, dispatch, openPanel }) {
 }
 
 // -------------------- TASK PANEL --------------------
-// -------------------- TASK PANEL (centred) --------------------
+// -------------------- TASK PANEL (centred + edit) --------------------
 function TaskPanel({ task, dispatch, close }) {
   const [title, setTitle] = useState(task.title);
+
+  const saveTitle = () => {
+    if (!title.trim()) return;
+    dispatch({ type: EDIT_TASK, payload: { id: task.id, updates: { title } } });
+  };
 
   return (
     <div
@@ -447,16 +452,15 @@ function TaskPanel({ task, dispatch, close }) {
           </button>
         </div>
 
+        {/* EDIT TITLE */}
+        <label className="block mb-2 text-sm text-gray-600">Title</label>
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
-          onBlur={() =>
-            dispatch({
-              type: EDIT_TASK,
-              payload: { id: task.id, updates: { title } },
-            })
-          }
+          onBlur={saveTitle}
+          onKeyDown={e => e.key === 'Enter' && saveTitle()}
           className="w-full border-b text-lg outline-none mb-6"
+          autoFocus
         />
 
         <div className="space-y-2">
