@@ -1,5 +1,5 @@
 import React, { useState, useReducer, useEffect } from 'react';
-import { Sun, Star, Calendar, CheckSquare, Inbox, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Sun, Star, Calendar, CheckSquare, Inbox, Plus, ChevronDown, ChevronRight, X } from 'lucide-react';
 
 // -------------------- INITIAL STATE --------------------
 const initialState = {
@@ -8,7 +8,7 @@ const initialState = {
     { id: 'personal', name: 'Personal', color: 'red' },
   ],
   activeView: 'my-day',
-  nextTaskId: 1, // <-- use this consistently
+  nextTaskId: 1,
 };
 
 // -------------------- ACTION TYPES --------------------
@@ -19,7 +19,6 @@ const TOGGLE_COMPLETE = 'TOGGLE_COMPLETE';
 const TOGGLE_IMPORTANT = 'TOGGLE_IMPORTANT';
 const SET_ACTIVE_VIEW = 'SET_ACTIVE_VIEW';
 const ADD_LIST = 'ADD_LIST';
-const DELETE_LIST = 'DELETE_LIST';
 
 // -------------------- REDUCER --------------------
 function appReducer(state, action) {
@@ -31,13 +30,12 @@ function appReducer(state, action) {
           ...state.tasks,
           {
             ...action.payload,
-            id: state.nextTaskId,   // ✅ assign unique ID
+            id: state.nextTaskId,
             createdAt: Date.now(),
           }
         ],
-        nextTaskId: state.nextTaskId + 1, // ✅ increment correctly
+        nextTaskId: state.nextTaskId + 1,
       };
-
     case EDIT_TASK:
       return {
         ...state,
@@ -47,13 +45,11 @@ function appReducer(state, action) {
             : task
         ),
       };
-
     case DELETE_TASK:
       return {
         ...state,
         tasks: state.tasks.filter(task => task.id !== action.payload),
       };
-
     case TOGGLE_COMPLETE:
       return {
         ...state,
@@ -63,20 +59,17 @@ function appReducer(state, action) {
             : task
         ),
       };
-
     case TOGGLE_IMPORTANT:
       return {
         ...state,
         tasks: state.tasks.map(task =>
           task.id === action.payload
-            ? { ...task, important: !task.important } // ✅ only toggle clicked task
+            ? { ...task, important: !task.important }
             : task
         ),
       };
-
     case SET_ACTIVE_VIEW:
       return { ...state, activeView: action.payload };
-
     case ADD_LIST:
       return {
         ...state,
@@ -85,11 +78,29 @@ function appReducer(state, action) {
           { id: `list-${state.lists.length + 1}`, name: action.payload, color: 'blue' },
         ],
       };
-
     default:
       return state;
   }
 }
+
+// -------------------- TINY TOOLTIP --------------------
+const Tip = ({ text, children }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // -------------------- SIDEBAR --------------------
 function Sidebar({ state, dispatch }) {
@@ -128,7 +139,6 @@ function Sidebar({ state, dispatch }) {
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">
-        {/* Navigation */}
         <nav className="px-2 space-y-1">
           {navItems.map(item => {
             const Icon = item.icon;
@@ -152,7 +162,6 @@ function Sidebar({ state, dispatch }) {
           })}
         </nav>
 
-        {/* Lists */}
         <div className="mt-6 px-2">
           <div className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">My Lists</div>
           <div className="space-y-1">
@@ -210,7 +219,7 @@ function Sidebar({ state, dispatch }) {
 }
 
 // -------------------- MAIN CONTENT --------------------
-function MainContent({ state, dispatch }) {
+function MainContent({ state, dispatch, openPanel }) {
   const [inputValue, setInputValue] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -273,7 +282,6 @@ function MainContent({ state, dispatch }) {
             {state.activeView === 'my-day' && <Sun className="w-6 h-6 text-yellow-500" />}
           </div>
 
-          {/* Input */}
           <div className="mb-6">
             <div className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
               <Plus className="w-5 h-5 text-blue-600" />
@@ -288,12 +296,12 @@ function MainContent({ state, dispatch }) {
             </div>
           </div>
 
-          {/* Active Tasks */}
           <div className="space-y-2 mb-6">
-            {activeTasks.map(task => <TaskItem key={task.id} task={task} dispatch={dispatch} />)}
+            {activeTasks.map(task => (
+              <TaskItem key={task.id} task={task} dispatch={dispatch} openPanel={openPanel} />
+            ))}
           </div>
 
-          {/* Completed */}
           {completedTasks.length > 0 && (
             <div className="mt-8">
               <button
@@ -303,11 +311,12 @@ function MainContent({ state, dispatch }) {
                 {showCompleted ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
                 <span>Completed ({completedTasks.length})</span>
               </button>
-              {showCompleted && completedTasks.map(task => <TaskItem key={task.id} task={task} dispatch={dispatch} />)}
+              {showCompleted && completedTasks.map(task => (
+                <TaskItem key={task.id} task={task} dispatch={dispatch} openPanel={openPanel} />
+              ))}
             </div>
           )}
 
-          {/* Empty State */}
           {activeTasks.length === 0 && completedTasks.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               <p>No tasks yet. Add one above to get started!</p>
@@ -320,57 +329,158 @@ function MainContent({ state, dispatch }) {
 }
 
 // -------------------- TASK ITEM --------------------
-function TaskItem({ task, dispatch }) {
-  const [isHovered, setIsHovered] = useState(false);
+function TaskItem({ task, dispatch, openPanel }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(task.title);
 
-  const isOverdue = () => {
-    if (!task.date || task.completed) return false;
-    const today = new Date().toISOString().split('T')[0];
-    return task.date < today;
-  };
-
-  const getCategoryColor = () => {
-    if (task.list === 'work') return 'text-blue-600 bg-blue-50';
-    if (task.list === 'personal') return 'text-green-600 bg-green-50';
-    if (task.list === 'groceries') return 'text-purple-600 bg-purple-50';
-    return 'text-gray-600 bg-gray-50';
+  const handleEditSave = () => {
+    if (!editValue.trim()) return;
+    dispatch({
+      type: EDIT_TASK,
+      payload: { id: task.id, updates: { title: editValue.trim() } }
+    });
+    setIsEditing(false);
   };
 
   return (
     <div
-      className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+      onClick={() => openPanel(task.id)}
     >
-      {/* Checkbox */}
-      <button onClick={() => dispatch({ type: TOGGLE_COMPLETE, payload: task.id })} className="flex-shrink-0">
-        {task.completed
-          ? <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          : <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-blue-600 transition-colors" />}
-      </button>
+      <div className="flex items-center gap-3 flex-1">
+        <input
+          type="checkbox"
+          checked={task.completed}
+          onChange={e => {
+            e.stopPropagation();
+            dispatch({ type: TOGGLE_COMPLETE, payload: task.id });
+          }}
+          className="w-4 h-4"
+        />
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className={`text-gray-900 ${task.completed ? 'line-through text-gray-400' : ''}`}>{task.title}</div>
-        <div className="flex items-center gap-3 mt-1">
-          <span className={`text-xs px-2 py-0.5 rounded ${getCategoryColor()}`}>
-            {task.list.charAt(0).toUpperCase() + task.list.slice(1)}
+        {isEditing ? (
+          <input
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleEditSave()}
+            onBlur={handleEditSave}
+            autoFocus
+            className="flex-1 border-b border-blue-500 outline-none text-gray-800"
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className={`flex-1 ${
+              task.completed ? 'line-through text-gray-400' : 'text-gray-800'
+            }`}
+          >
+            {task.title}
           </span>
-          {isOverdue() && <span className="text-xs text-red-500">Overdue</span>}
-        </div>
+        )}
       </div>
 
-      {/* Star */}
-      <button
-        onClick={() => dispatch({ type: TOGGLE_IMPORTANT, payload: task.id })}
-        className={`flex-shrink-0 transition-colors ${task.important ? 'text-yellow-500' : isHovered ? 'text-gray-400 hover:text-yellow-500' : 'text-transparent'}`}
-      >
-        <Star className={`w-5 h-5 ${task.important ? 'fill-current' : ''}`} />
-      </button>
+      <div className="flex items-center gap-2 ml-3">
+        <Tip text={task.important ? 'Remove important' : 'Mark important'}>
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              dispatch({ type: TOGGLE_IMPORTANT, payload: task.id });
+            }}
+            className="p-1 rounded hover:bg-gray-100"
+          >
+            <Star
+              className={`w-5 h-5 ${
+                task.important
+                  ? 'text-yellow-400 fill-yellow-400'
+                  : 'text-gray-400'
+              }`}
+            />
+          </button>
+        </Tip>
+
+        <Tip text="Edit task">
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              setIsEditing(true);
+            }}
+            className="p-1 rounded hover:bg-gray-100 text-gray-500"
+          >
+            ✏
+          </button>
+        </Tip>
+
+        <Tip text="Delete task">
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              dispatch({ type: DELETE_TASK, payload: task.id });
+            }}
+            className="p-1 rounded hover:bg-gray-100 text-red-500"
+          >
+            🗑
+          </button>
+        </Tip>
+      </div>
+    </div>
+  );
+}
+
+// -------------------- TASK PANEL --------------------
+function TaskPanel({ task, dispatch, close }) {
+  const [title, setTitle] = useState(task.title);
+
+  return (
+    <div className="fixed inset-0 flex z-50">
+      <div className="flex-1 bg-black/30" onClick={close} />
+      <div className="w-96 bg-white p-6">
+        <div className="flex justify-between mb-4">
+          <h2 className="font-semibold">Task Details</h2>
+          <button onClick={close}>
+            <X />
+          </button>
+        </div>
+
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onBlur={() =>
+            dispatch({
+              type: EDIT_TASK,
+              payload: { id: task.id, updates: { title } },
+            })
+          }
+          className="w-full border-b text-lg outline-none mb-6"
+        />
+
+        <button
+          onClick={() =>
+            dispatch({ type: TOGGLE_COMPLETE, payload: task.id })
+          }
+          className="w-full border p-2 rounded mb-2"
+        >
+          {task.completed ? 'Mark Active' : 'Mark Done'}
+        </button>
+
+        <button
+          onClick={() =>
+            dispatch({ type: TOGGLE_IMPORTANT, payload: task.id })
+          }
+          className="w-full border p-2 rounded mb-2"
+        >
+          {task.important ? 'Remove Important' : 'Mark Important ⭐'}
+        </button>
+
+        <button
+          onClick={() => {
+            dispatch({ type: DELETE_TASK, payload: task.id });
+            close();
+          }}
+          className="w-full border p-2 rounded text-red-600"
+        >
+          Delete Task
+        </button>
+      </div>
     </div>
   );
 }
@@ -378,15 +488,20 @@ function TaskItem({ task, dispatch }) {
 // -------------------- APP --------------------
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [panelTaskId, setPanelTaskId] = useState(null);
 
-  useEffect(() => {
-    // optional: localStorage sync here
-  }, [state]);
+  const closePanel = () => setPanelTaskId(null);
+  const openPanel = id => setPanelTaskId(id);
+
+  const panelTask = state.tasks.find(t => t.id === panelTaskId);
 
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar state={state} dispatch={dispatch} />
-      <MainContent state={state} dispatch={dispatch} />
+      <MainContent state={state} dispatch={dispatch} openPanel={openPanel} />
+      {panelTask && (
+        <TaskPanel task={panelTask} dispatch={dispatch} close={closePanel} />
+      )}
     </div>
   );
 }
