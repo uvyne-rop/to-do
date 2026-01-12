@@ -427,16 +427,22 @@ function TaskItem({ task, dispatch, openPanel }) {
 }
 
 // -------------------- TASK PANEL --------------------
+// -------------------- TASK PANEL (centred) --------------------
 function TaskPanel({ task, dispatch, close }) {
   const [title, setTitle] = useState(task.title);
 
   return (
-    <div className="fixed inset-0 flex z-50">
-      <div className="flex-1 bg-black/30" onClick={close} />
-      <div className="w-96 bg-white p-6">
-        <div className="flex justify-between mb-4">
-          <h2 className="font-semibold">Task Details</h2>
-          <button onClick={close}>
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      onClick={close}
+    >
+      <div
+        className="bg-white rounded-xl shadow-lg w-full max-w-md p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-semibold text-gray-800">Task Details</h2>
+          <button onClick={close} className="text-gray-500 hover:text-gray-800">
             <X />
           </button>
         </div>
@@ -453,33 +459,31 @@ function TaskPanel({ task, dispatch, close }) {
           className="w-full border-b text-lg outline-none mb-6"
         />
 
-        <button
-          onClick={() =>
-            dispatch({ type: TOGGLE_COMPLETE, payload: task.id })
-          }
-          className="w-full border p-2 rounded mb-2"
-        >
-          {task.completed ? 'Mark Active' : 'Mark Done'}
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={() => dispatch({ type: TOGGLE_COMPLETE, payload: task.id })}
+            className="w-full border p-2 rounded hover:bg-gray-50"
+          >
+            {task.completed ? 'Mark Active' : 'Mark Done'}
+          </button>
 
-        <button
-          onClick={() =>
-            dispatch({ type: TOGGLE_IMPORTANT, payload: task.id })
-          }
-          className="w-full border p-2 rounded mb-2"
-        >
-          {task.important ? 'Remove Important' : 'Mark Important ⭐'}
-        </button>
+          <button
+            onClick={() => dispatch({ type: TOGGLE_IMPORTANT, payload: task.id })}
+            className="w-full border p-2 rounded hover:bg-gray-50"
+          >
+            {task.important ? 'Remove Important' : 'Mark Important ⭐'}
+          </button>
 
-        <button
-          onClick={() => {
-            dispatch({ type: DELETE_TASK, payload: task.id });
-            close();
-          }}
-          className="w-full border p-2 rounded text-red-600"
-        >
-          Delete Task
-        </button>
+          <button
+            onClick={() => {
+              dispatch({ type: DELETE_TASK, payload: task.id });
+              close();
+            }}
+            className="w-full border p-2 rounded text-red-600 hover:bg-red-50"
+          >
+            Delete Task
+          </button>
+        </div>
       </div>
     </div>
   );
