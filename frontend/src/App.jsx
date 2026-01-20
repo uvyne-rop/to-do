@@ -4,6 +4,7 @@ import { Sun, Star, Calendar, CheckSquare, Inbox, Plus, ChevronDown, ChevronRigh
 import { db } from './firebase';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { query, where } from "firebase/firestore";
 
 
 
@@ -791,17 +792,27 @@ useEffect(() => {
 
   const fetchTasks = async (uid) => {
   dispatch({ type: SET_LOADING, payload: true });
+
   try {
-    const snapshot = await getDocs(collection(db, "tasks"));
-    const tasks = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(task => task.userId === uid); // only this user's tasks
+    const q = query(
+      collection(db, "tasks"),
+      where("userId", "==", uid)
+    );
+
+    const snapshot = await getDocs(q);
+
+    const tasks = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
     dispatch({ type: SET_TASKS, payload: tasks });
-  } catch (error) {
-    console.error('Failed to fetch tasks:', error);
-    dispatch({ type: SET_ERROR, payload: 'Failed to load tasks' });
+  } catch (err) {
+    console.error(err);
+    dispatch({ type: SET_ERROR, payload: "Failed to load tasks" });
   }
 };
+
 
 
   const handleLogin = (firebaseUser) => {
