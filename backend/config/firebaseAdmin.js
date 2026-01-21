@@ -1,10 +1,7 @@
-// ES module syntax
-import admin from 'firebase-admin';
-import serviceAccount from './serviceAccountKey.json' assert { type: 'json' };
+import admin from "firebase-admin";
 
-// Initialize Firebase Admin
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.applicationDefault(),
 });
 
-export const db = admin.firestore();
+export default admin;
