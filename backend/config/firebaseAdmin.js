@@ -1,3 +1,5 @@
+//to securely connect to firebase as an admin...with full admin access
+
 // config/firebaseAdmin.js
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -9,4 +11,4 @@ const serviceAccount = JSON.parse(
 
 initializeApp({ credential: cert(serviceAccount) });
 
-export const db = getFirestore();   // <-- this line was missing
+export const db = getFirestore();  

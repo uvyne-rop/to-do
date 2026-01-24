@@ -1,3 +1,5 @@
+//handles HTTP requests to create a task for a specific user.
+
 exports.createTask = async (req, res) => {
   try {
     const userId = req.userId;
@@ -6,7 +8,7 @@ exports.createTask = async (req, res) => {
     // ADD THESE LOGS
     console.log('📥 CREATE TASK REQUEST');
     console.log('👤 User ID:', userId);
-    console.log('📝 Task data:', { title, list, myDay, completed });
+    console.log('📝 Task data:', { title, list, myDay, completed });  //Prints info about the request to help debug issues.
 
     if (!title || title.trim() === '') {
       console.log('❌ Validation failed: No title');
@@ -14,8 +16,10 @@ exports.createTask = async (req, res) => {
         success: false,
         error: 'Task title is required'
       });
-    }
+    }  //Ensures every task has a title...Returns an error if missing.
 
+
+//Creates the task data with default values.
     const taskData = {
       title: title.trim(),
       completed: completed || false,
@@ -49,7 +53,7 @@ exports.createTask = async (req, res) => {
     
     console.log('📤 Response sent successfully');
     
-  } catch (error) {
+  } catch (error) {   //Catches any error and sends a 500 response with error details.
     console.error('❌ CREATE TASK ERROR:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);

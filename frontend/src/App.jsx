@@ -27,9 +27,11 @@ const SET_LOADING = 'SET_LOADING';
 const SET_ERROR   = 'SET_ERROR';
 
 // --------------------  REDUCER  --------------------
+// The reducer controls how the app state changes
+// It receives the current state and an action
 function appReducer(state, action) {
   switch (action.type) {
-    case SET_TASKS:   return { ...state, tasks: action.payload, loading: false };
+    case SET_TASKS:   return { ...state, tasks: action.payload, loading: false };  //load all tasks from firestore into state
     case ADD_TASK:    return { ...state, tasks: [action.payload, ...state.tasks], loading: false };
     case EDIT_TASK:   return { ...state, tasks: state.tasks.map(t => t.id === action.payload.id ? action.payload : t), loading: false };
     case DELETE_TASK: return { ...state, tasks: state.tasks.filter(t => t.id !== action.payload), loading: false };
@@ -37,17 +39,19 @@ function appReducer(state, action) {
     case TOGGLE_IMPORTANT: return { ...state, tasks: state.tasks.map(t => t.id === action.payload.id ? action.payload : t), loading: false };
     case SET_ACTIVE_VIEW:  return { ...state, activeView: action.payload };
     case ADD_LIST:    return { ...state, lists: [...state.lists, { id: `list-${state.lists.length + 1}`, name: action.payload, color: 'blue' }] };
-    case SET_LOADING: return { ...state, loading: action.payload };
-    case SET_ERROR:   return { ...state, error: action.payload, loading: false };
+    case SET_LOADING: return { ...state, loading: action.payload };  //  Turn loading ON or OFF
+    case SET_ERROR:   return { ...state, error: action.payload, loading: false };   // Save an error message and stop loading
     default: return state;
   }
 }
 
 // --------------------  FIREBASE API  --------------------
+//  contains all functions that talk to Firebase Firestore
 export const firebaseAPI = {
   subscribeTasks: (uid, cb) => {
-    const q = query(collection(db, 'tasks'), where('userId', '==', uid));
-    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    const q = query(collection(db, 'tasks'), where('userId', '==', uid));     // Create a query: select tasks where userId == current user id
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));   // Listen for real-time updates from Firestore
+    // Whenever data changes, this callback runs
   },
   createTask: async (taskData) => {
     const docRef = await addDoc(collection(db, 'tasks'), { ...taskData, createdAt: new Date(), updatedAt: new Date() });
@@ -75,7 +79,7 @@ const Tip = ({ text, children }) => {
   );
 };
 
-// --------------------  AUTH SCREEN  (image removed)  --------------------
+// --------------------  AUTH SCREEN  --------------------
 function AuthScreen({ onLogin }) {
   const navigate = useNavigate();
   const [isLogin, setIsLogin]   = useState(true);
@@ -123,7 +127,7 @@ function AuthScreen({ onLogin }) {
     }
   };
 
-  /* ----------  UI  (no image / no left panel)  ---------- */
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
@@ -134,7 +138,7 @@ function AuthScreen({ onLogin }) {
 
         {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
 
-        {/* Social buttons */}
+        {/* Social button */}
         <div className="space-y-3 mb-6">
          
           <button onClick={() => social(google)} disabled={loading} className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
@@ -563,48 +567,82 @@ function TaskPanel({ task, dispatch, close }) {
 // --------------------  MAIN APP  --------------------
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  // Task ID currently opened in the side panel
   const [panelTaskId, setPanelTaskId] = useState(null);
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);   // Logged-in user
+  const [authLoading, setAuthLoading] = useState(true);  // Loading state while checking authentication
 
   /*  AUTH STATE  */
   useEffect(() => {
     const auth = getAuth();
+
+    // Listen for login / logout changes
     return onAuthStateChanged(auth, u => {
       setUser(u);
       setAuthLoading(false);
     });
   }, []);
 
-  /*  TASKS LOADER (FIXED)  */
+  /*  TASKS LOADER */
   useEffect(() => {
-    if (!user?.uid) return;
-    dispatch({ type: SET_LOADING, payload: true });
+    if (!user?.uid) return;   // Do nothing if user is not logged in
+    dispatch({ type: SET_LOADING, payload: true });  // Show loading while fetching tasks
     const unsub = firebaseAPI.subscribeTasks(user.uid, tasks => {
       dispatch({ type: SET_TASKS, payload: tasks });
-    });
+    });     // Subscribe to user's tasks in Firestore
     return unsub;
   }, [user]);
 
+  // Login handler
   const handleLogin = u => setUser(u);
-  const handleLogout = () => { setUser(null); dispatch({ type: SET_TASKS, payload: [] }); };
+
+  // Logout handler
+  const handleLogout = () => {
+    setUser(null);
+    dispatch({ type: SET_TASKS, payload: [] });
+  };
+
+  // Task panel helpers
   const closePanel = () => setPanelTaskId(null);
   const openPanel = id => setPanelTaskId(id);
+
+  // Currently selected task
   const panelTask = state.tasks.find(t => t.id === panelTaskId);
 
+  // Show spinner while checking auth
   if (authLoading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
       <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
     </div>
   );
 
+  // Show login screen if not authenticated
   if (!user) return <AuthScreen onLogin={handleLogin} />;
 
+  // Main app layout
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar state={state} dispatch={dispatch} onLogout={handleLogout} userEmail={user.email} />
-      <MainContent state={state} dispatch={dispatch} openPanel={openPanel} user={user} />
-      {panelTask && <TaskPanel task={panelTask} dispatch={dispatch} close={closePanel} />}
+      <Sidebar
+        state={state}
+        dispatch={dispatch}
+        onLogout={handleLogout}
+        userEmail={user.email}
+      />
+
+      <MainContent
+        state={state}
+        dispatch={dispatch}
+        openPanel={openPanel}
+        user={user}
+      />
+
+      {panelTask && (
+        <TaskPanel
+          task={panelTask}
+          dispatch={dispatch}
+          close={closePanel}
+        />
+      )}
     </div>
   );
 }

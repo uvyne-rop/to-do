@@ -1,8 +1,10 @@
+//Backend middleware....checks if a request is coming from an authenticated user
+
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
-    // ADD THESE LOGS
+    
     console.log('🔐 Auth header received:', authHeader ? 'Yes' : 'No');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

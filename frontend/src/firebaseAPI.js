@@ -1,3 +1,5 @@
+//Firebase CRUD service for tasks
+
 import { db } from './firebase';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore';
 

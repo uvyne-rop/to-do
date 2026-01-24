@@ -1,6 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import { db } from './config/firebaseAdmin.js';
+//backend server entry point
+//connects firebase admin via db for backend database operations
+
+import express from 'express';  //Web framework to create routes and handle requests.
+import cors from 'cors';  //Middleware that allows requests from other domains(react frontend)
+import { db } from './config/firebaseAdmin.js';  //Firebase Admin Firestore database connection.
 
 const app = express();
 const PORT = 5000;
@@ -21,4 +24,5 @@ app.get('/test-firebase', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
-});
+});  //Logs a message when the server is ready.
+  
